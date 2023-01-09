@@ -49,13 +49,6 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-const nodes = [
-  {
-    id: '1',
-    position: { x: 0, y: 0 },
-  },
-];
-
 export default function App({ Component, pageProps }: AppProps) {
   const [colorScheme, setColorScheme] = useState<ColorScheme>('dark');
   const toggleColorScheme = (value?: ColorScheme) =>

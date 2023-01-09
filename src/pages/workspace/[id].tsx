@@ -8,10 +8,61 @@ import {
   IconPlus,
 } from '@tabler/icons';
 import type { ComponentType } from 'react';
-import type { Node, NodeProps, NodeTypes } from 'reactflow';
+import { useRef } from 'react';
+import type { NodeProps, NodeTypes } from 'reactflow';
+import { Background } from 'reactflow';
 import { Handle, Position } from 'reactflow';
 import ReactFlow, { Controls } from 'reactflow';
 import 'reactflow/dist/style.css';
+import getLayout from '@/utils/lr';
+
+type NodeData = { id: string; children?: NodeData[] };
+
+const data: NodeData = {
+  id: 'abhiram',
+  children: [
+    {
+      id: 'abhiramreddy',
+      children: [
+        {
+          id: 'abhiramreddy1',
+          children: [
+            {
+              id: 'abhiramreddy2',
+              children: [
+                {
+                  id: 'abhiramreddy3',
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'abhiramreddy4',
+      children: [
+        {
+          id: 'abhiramreddy5',
+          children: [
+            {
+              id: 'abhiramreddy6',
+              children: [],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+const nodes = getLayout(400, 400, data).map((node) => ({
+  id: node.id,
+  data: { label: node.id },
+  position: { x: node.x, y: node.y },
+  type: 'custom',
+}));
 
 const useStyles = createStyles((theme) => ({
   root: {
@@ -68,15 +119,6 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-const nodes: Node<any>[] = [
-  {
-    id: '1',
-    data: { label: 'Node 1' },
-    position: { x: 250, y: 5 },
-    type: 'custom',
-  },
-];
-
 const DefaultNode: ComponentType<NodeProps<any>> = ({}) => {
   const { classes } = useStyles();
 
@@ -108,6 +150,7 @@ const nodeTypes: NodeTypes = { custom: DefaultNode };
 
 const Editor = () => {
   const { classes, theme } = useStyles();
+  const flow = useRef<HTMLDivElement>(null);
 
   return (
     <div className={classes.root}>
@@ -172,11 +215,12 @@ const Editor = () => {
       <div className={classes.content}>
         <div style={{ height: '100%' }}>
           <ReactFlow
+            ref={flow}
             nodes={nodes}
             nodeTypes={nodeTypes}
             className={classes.reactflow}
-            edges={[]}
           >
+            <Background gap={24} size={1} />
             <Controls />
           </ReactFlow>
         </div>
