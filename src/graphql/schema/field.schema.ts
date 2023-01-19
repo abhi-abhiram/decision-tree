@@ -1,6 +1,11 @@
 import { Field, InputType, ObjectType, registerEnumType } from 'type-graphql';
 import * as typegoose from '@typegoose/typegoose';
-import { modelOptions, prop } from '@typegoose/typegoose';
+import {
+  getModelForClass,
+  Index,
+  modelOptions,
+  prop,
+} from '@typegoose/typegoose';
 import { GraphQLID } from 'graphql';
 
 export enum InputFieldType {
@@ -46,31 +51,31 @@ export class Attachment {
 @ObjectType()
 @modelOptions({ schemaOptions: { _id: false } })
 export class FieldProperties {
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   @prop()
   public label?: string;
 
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   @prop()
   public placeholder?: string;
 
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   @prop()
   public description?: string;
 
-  @Field(() => [FieldChoice])
+  @Field(() => [FieldChoice], { nullable: true })
   @prop({ ref: () => FieldChoice })
   public choices?: typegoose.Ref<FieldChoice>[];
 
-  @Field(() => FormSearchOptions)
+  @Field(() => FormSearchOptions, { nullable: true })
   @prop({ ref: () => FormSearchOptions })
   public searchOptions?: typegoose.Ref<FormSearchOptions>;
 
   @Field(() => Boolean)
-  @prop()
+  @prop({ default: true })
   public required?: boolean;
 
-  @Field(() => Attachment)
+  @Field(() => Attachment, { nullable: true })
   @prop()
   public attachment?: Attachment;
 }
@@ -78,7 +83,7 @@ export class FieldProperties {
 @ObjectType()
 export class FormField {
   @Field(() => GraphQLID)
-  public id: string;
+  public _id: string;
 
   @Field(() => String)
   @prop()
@@ -90,13 +95,13 @@ export class FormField {
 
   @Field(() => FieldProperties)
   @prop()
-  public properties?: FieldProperties;
+  public properties: FieldProperties;
 }
 
 @ObjectType()
 export class FieldChoice {
   @Field(() => GraphQLID)
-  public id: string;
+  public _id: string;
 
   @Field(() => String)
   @prop()
@@ -108,26 +113,58 @@ export class FieldChoice {
 }
 
 @ObjectType()
-export class FormSearchOptions {
+export class SearchOption {
   @Field(() => GraphQLID)
-  public id: string;
+  public _id: string;
 
   @Field(() => String)
   @prop()
   public name!: string;
 
-  @Field(() => [FieldChoice])
-  @prop({ ref: () => FieldChoice })
-  public options?: typegoose.Ref<FieldChoice>[];
+  @Field(() => String)
+  @prop()
+  public value!: string;
 }
+
+@ObjectType()
+@Index({ _id: 1, 'option.value': 1 }, { unique: true })
+export class FormSearchOptions {
+  @Field(() => GraphQLID)
+  public _id: string;
+
+  @Field(() => String)
+  @prop()
+  public name!: string;
+
+  @Field(() => [SearchOption])
+  @prop({ type: () => [SearchOption] })
+  public options!: SearchOption[];
+}
+
+export const FormFieldModel = getModelForClass<typeof FormField>(FormField);
+export const FieldChoiceModel =
+  getModelForClass<typeof FieldChoice>(FieldChoice);
+export const FormSearchOptionsModel =
+  getModelForClass<typeof FormSearchOptions>(FormSearchOptions);
+
+/* -------- input schema --------- */
 
 @InputType()
 export class CreateFormSearchOptions {
   @Field(() => String)
   public name!: string;
 
-  @Field(() => [CreateFieldChoice])
-  public options?: CreateFieldChoice[];
+  @Field(() => [CreateOptions])
+  public options: CreateOptions[];
+}
+
+@InputType()
+export class CreateOptions {
+  @Field(() => String)
+  public name: string;
+
+  @Field(() => String)
+  public value: string;
 }
 
 @InputType()
@@ -144,16 +181,16 @@ export class CreateAttachment {
 
 @InputType()
 export class CreateFieldProperties {
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   public label?: string;
 
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   public placeholder?: string;
 
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   public description?: string;
 
-  @Field(() => [GraphQLID])
+  @Field(() => [GraphQLID], { nullable: true })
   public choices?: string[];
 
   @Field(() => GraphQLID, {
@@ -161,10 +198,10 @@ export class CreateFieldProperties {
   })
   public searchOptions?: string;
 
-  @Field(() => Boolean)
+  @Field(() => Boolean, { nullable: true })
   public required?: boolean;
 
-  @Field(() => CreateAttachment)
+  @Field(() => CreateAttachment, { nullable: true })
   public attachment?: CreateAttachment;
 }
 
@@ -187,4 +224,68 @@ export class CreateFieldChoice {
 
   @Field(() => String)
   public value!: string;
+}
+
+/* ----------- update schema ------------ */
+
+@InputType()
+export class UpdateAttachment {
+  @Field(() => String, { nullable: true })
+  public name: string;
+
+  @Field(() => String, { nullable: true })
+  public url: string;
+
+  @Field(() => AttachmentType, { nullable: true })
+  public type: AttachmentType;
+}
+
+@InputType()
+export class UpdateFieldProps {
+  @Field(() => String, { nullable: true })
+  public label: string;
+
+  @Field(() => String, { nullable: true })
+  public placeholder: string;
+
+  @Field(() => String, { nullable: true })
+  public description: string;
+
+  @Field(() => [GraphQLID], { nullable: true })
+  public choices: string[];
+
+  @Field(() => GraphQLID, {
+    nullable: true,
+  })
+  public searchOptions?: string;
+
+  @Field(() => Boolean, { nullable: true })
+  public required?: boolean;
+
+  @Field(() => UpdateAttachment, { nullable: true })
+  public attachment?: UpdateAttachment;
+}
+
+@InputType()
+export class UpdateFormField {
+  @Field(() => GraphQLID)
+  public _id: string;
+
+  @Field(() => String, { nullable: true })
+  public name!: string;
+
+  @Field(() => InputFieldType, { nullable: true })
+  public type!: InputFieldType;
+
+  @Field(() => UpdateFieldProps, { nullable: true })
+  public properties: UpdateFieldProps;
+}
+
+@ObjectType()
+export class UpdateResponse {
+  @Field(() => Boolean)
+  public status: boolean;
+
+  @Field(() => String)
+  public message: string;
 }

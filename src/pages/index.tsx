@@ -1,7 +1,12 @@
-import { Center, Button, Text, Title } from '@mantine/core';
+import { Button, Title, Center, Text } from '@mantine/core';
 import { IconPlus } from '@tabler/icons';
+import { useState } from 'react';
+import CreateWorkspace from '@/components/CreateWorkspaceModal';
 
 const Home = () => {
+  const [opened, setOpen] = useState(false);
+  const onClose = () => setOpen((val) => !val);
+
   return (
     <Center h='100%'>
       <div style={{ textAlign: 'center' }}>
@@ -11,17 +16,24 @@ const Home = () => {
           </Title>
 
           <Text size='lg' style={{ fontWeight: 400 }}>
-            Create a new workspace or join an existing one
+            Create a new workspace or select an existing one
           </Text>
         </div>
         <Button
-          leftIcon={<IconPlus size={16} stroke={1.6} />}
           size='xs'
+          leftIcon={<IconPlus size={16} stroke={1.6} />}
           style={{ marginTop: 20, marginRight: 'auto' }}
+          onClick={() => setOpen(true)}
         >
-          Create WorkSpace
+          Create workspace
         </Button>
       </div>
+      <CreateWorkspace
+        modalProps={{
+          onClose,
+          opened,
+        }}
+      />
     </Center>
   );
 };

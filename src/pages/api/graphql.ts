@@ -1,10 +1,12 @@
-import "reflect-metadata";
-import { ApolloServer } from "apollo-server-micro";
-import type { NextApiHandler, PageConfig } from "next";
-import { buildSchema } from "type-graphql";
-import { connectDB } from "@/utils/connectDB";
-import Cors from "micro-cors";
-import { resolvers } from "@/graphql/resolvers";
+import 'reflect-metadata';
+import { ApolloServer } from 'apollo-server-micro';
+import type { NextApiHandler, PageConfig } from 'next';
+import { buildSchema } from 'type-graphql';
+import { connectDB } from '@/utils/connectDB';
+import Cors from 'micro-cors';
+import { resolvers } from '@/graphql/resolvers';
+import type { GrapqhlContext } from '@/graphql/context';
+import { loaders } from '@/graphql/context';
 
 const schema = await buildSchema({
   resolvers,
@@ -15,29 +17,33 @@ const cors = Cors();
 
 const apolloServer = new ApolloServer({
   schema,
+  context: ({ req, res }): GrapqhlContext => {
+    return { req, res, loaders };
+  },
 });
 
 const startServer = apolloServer.start();
 
 const handler: NextApiHandler = cors(async (req, res) => {
-  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader(
-    "Access-Control-Allow-Origin",
-    "https://studio.apollographql.com"
+    'Access-Control-Allow-Origin',
+    'https://studio.apollographql.com'
   );
   res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept"
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept'
   );
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     res.end();
     return false;
   }
+
   await connectDB();
   await startServer;
 
   await apolloServer.createHandler({
-    path: "/api/graphql",
+    path: '/api/graphql',
   })(req, res);
 });
 

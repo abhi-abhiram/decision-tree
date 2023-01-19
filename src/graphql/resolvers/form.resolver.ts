@@ -1,67 +1,71 @@
-import type { ReturnModelType } from '@typegoose/typegoose';
-import { getModelForClass } from '@typegoose/typegoose';
-import * as graphql from 'graphql';
-import { Arg, Info, Mutation, Query, Resolver } from 'type-graphql';
-import { CreateForm, Form } from '../schema/form.schema';
-import graphqlFields from 'graphql-fields';
+import { Arg, Mutation, Query, Resolver } from 'type-graphql';
+import { UpdateStatus } from '../schema/common';
+import { CreateForm, Form, FormModel, UpdateForm } from '../schema/form.schema';
+import { WorkspaceModel } from '../schema/workspace.schema';
 
 @Resolver(Form)
 export default class FormResolver {
-  private FormModel: ReturnModelType<typeof Form>;
-  constructor() {
-    this.FormModel = getModelForClass(Form);
-  }
-
   @Query(() => [Form])
-  async Forms(@Info() info: graphql.GraphQLResolveInfo): Promise<Form[]> {
-    const selection = graphqlFields(info);
-    let populate = '';
-    if (
-      selection.nextForm &&
-      Object.keys(selection.answers.nextForm).length > 0
-    ) {
-      populate += 'answers.nextForm';
-    }
+  async Forms() {
+    const form = await FormModel.find({}).lean();
 
-    if (selection.nextForm && Object.keys(selection.nextForms).length > 0) {
-      populate += ' nextForms';
-    }
-
-    if (populate) {
-      return this.FormModel.find().populate(populate);
-    }
-
-    return this.FormModel.find();
+    return form;
   }
 
-  // @Mutation(() => Form)
-  // async CreateForm(@Arg('data') input: CreateForm): Promise<Form> {}
+  @Query(() => Form)
+  async Form(@Arg('id') id: string) {
+    const form = await FormModel.findById(id)
+      .lean()
+      .populate(['fields', 'logic']);
+    return form;
+  }
 
-  //   @FieldResolver()
-  //   async nextNodes(
-  //     @Info() info: graphql.GraphQLResolveInfo,
-  //     @Root("_doc") node: Node
-  //   ) {
-  //     const selection = graphqlFields(info);
-  //     let populate = "";
+  @Mutation(() => Form)
+  async createForm(
+    @Arg('data') input: CreateForm,
+    @Arg('workspaceId') workspaceId: string
+  ) {
+    const form = await FormModel.create(input);
 
-  //     if (selection.nextNodes && Object.keys(selection.nextNodes).length > 0) {
-  //       populate = "nextNodes";
-  //     }
+    const result = await WorkspaceModel.updateOne(
+      { _id: workspaceId },
+      {
+        $addToSet: {
+          forms: [form._id],
+        },
+      }
+    );
 
-  //     if (populate) {
-  //       return this.NodeModel.findById(node.id).populate(populate);
-  //     }
+    return form;
+  }
 
-  //     return node.nextNodes?.map((node) => ({
-  //       id: node.toString(),
-  //     }));
-  //   }
+  @Mutation(() => UpdateStatus)
+  async updateForm(@Arg('data') input: UpdateForm): Promise<UpdateStatus> {
+    const { fields, logic } = input;
 
-  //   @Mutation(() => Node)
-  //   async createNode(@Arg("node") node: CreateNodeInput): Promise<Node> {
-  //     const newNode = new this.NodeModel(node);
+    delete input.fields;
+    delete input.logic;
 
-  //     return newNode.save();
-  //   }
+    const form = await FormModel.updateOne(
+      { _id: input._id },
+      {
+        $set: input.name
+          ? {
+              name: input.name,
+            }
+          : {},
+        [`$${fields?.op}`]: {
+          fields: fields?.fields,
+        },
+        [`$${logic?.op}`]: {
+          logic: logic?.logic,
+        },
+      }
+    );
+
+    return {
+      message: 'Success',
+      success: true,
+    };
+  }
 }

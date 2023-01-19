@@ -1,3 +1,4 @@
+import { graphql } from '@/gql';
 import {
   createStyles,
   Navbar,
@@ -11,6 +12,9 @@ import {
 } from '@mantine/core';
 import { IconSearch, IconPlus } from '@tabler/icons';
 import Link from 'next/link';
+import { useMemo, useState } from 'react';
+import { useQuery } from 'urql';
+import CreateWorkspace from './CreateWorkspaceModal';
 
 const useStyles = createStyles((theme) => ({
   navbar: {
@@ -51,7 +55,7 @@ const useStyles = createStyles((theme) => ({
       backgroundColor:
         theme.colorScheme === 'dark'
           ? theme.colors.dark[6]
-          : theme.colors.gray[0],
+          : theme.colors.gray[1],
       color: theme.colorScheme === 'dark' ? theme.white : theme.black,
     },
   },
@@ -71,31 +75,44 @@ const useStyles = createStyles((theme) => ({
     color:
       theme.colorScheme === 'dark'
         ? theme.colors.dark[0]
-        : theme.colors.gray[7],
+        : theme.colors.dark[9],
     lineHeight: 1,
     fontWeight: 400,
   },
 }));
 
-const workspace = [
-  {
-    label: 'Outlook',
-  },
-  {
-    label: 'Gmail',
-  },
-];
+const Workspaces = graphql(
+  `
+    query Workspace {
+      Workspaces {
+        _id
+        name
+      }
+    }
+  `
+);
 
 export default function NavBar() {
   const { classes } = useStyles();
+  const [result] = useQuery({
+    query: Workspaces,
+  });
+  const [opened, setOpened] = useState(false);
 
-  const workspaceLinks = workspace.map((workspace) => (
-    <div className={classes.workSpace} key={workspace.label}>
-      <Link href='/' className={classes.workspaceLink}>
-        {workspace.label}
-      </Link>
-    </div>
-  ));
+  const workspaceLinks = useMemo(
+    () =>
+      result.data?.Workspaces.map((workspace) => (
+        <div className={classes.workSpace} key={workspace._id}>
+          <Link
+            href={`/workspace/${workspace._id}`}
+            className={classes.workspaceLink}
+          >
+            {workspace.name}
+          </Link>
+        </div>
+      )),
+    [classes.workSpace, classes.workspaceLink, result.data?.Workspaces]
+  );
 
   return (
     <Navbar
@@ -127,7 +144,11 @@ export default function NavBar() {
             Workspaces
           </Text>
           <Tooltip label='Create Workspace' withArrow position='right'>
-            <ActionIcon variant='default' size={24}>
+            <ActionIcon
+              variant='default'
+              size={24}
+              onClick={() => setOpened(true)}
+            >
               <IconPlus size={14} stroke={1.6} />
             </ActionIcon>
           </Tooltip>
@@ -137,6 +158,12 @@ export default function NavBar() {
           <div>{workspaceLinks}</div>
         </ScrollArea>
       </Navbar.Section>
+      <CreateWorkspace
+        modalProps={{
+          onClose: () => setOpened(false),
+          opened,
+        }}
+      />
     </Navbar>
   );
 }

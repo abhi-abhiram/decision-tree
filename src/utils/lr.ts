@@ -1,12 +1,17 @@
+import type { FieldProperties, FormField, InputFieldType } from '@/gql/graphql';
 import { graphlib, layout } from 'dagre';
+import type { Edge, Node } from 'reactflow';
+import { Position } from 'reactflow';
 
-type Node = {
-  id: string;
-  children?: Node[];
-};
-
-export default function getLayout(width: number, height: number, root: Node) {
+export default function getLayout<T>(
+  nodes: Node<T>[],
+  edges: Edge[],
+  nodeHeight: number,
+  nodeWidth: number
+): Node<T>[] {
   const g = new graphlib.Graph<Node>();
+
+  console.log(nodes, edges);
 
   g.setGraph({
     rankdir: 'LR',
@@ -16,35 +21,42 @@ export default function getLayout(width: number, height: number, root: Node) {
     return {};
   });
 
-  function addNode(node: Node) {
-    g.setNode(node.id, {
-      label: node.id,
-      width: 144,
-      height: 100,
-    });
+  nodes.forEach((node) => {
+    g.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+  });
 
-    if (node.children) {
-      node.children.forEach((child) => {
-        g.setEdge(node.id, child.id);
-        addNode(child);
-      });
-    }
-  }
-
-  addNode(root);
-
-  g.graph().width = width;
-  g.graph().height = height;
+  edges.forEach((edge) => {
+    g.setEdge(edge.source, edge.target);
+  });
 
   layout(g);
 
-  return g.nodes().map((val) => {
-    return {
-      id: val,
-      x: g.node(val).x,
-      y: g.node(val).y,
-      width: g.node(val).width,
-      height: g.node(val).height,
+  nodes.forEach((node) => {
+    const nodeWithPosition = g.node(node.id);
+    node.targetPosition = Position.Left;
+    node.sourcePosition = Position.Right;
+
+    node.position = {
+      x: nodeWithPosition.x - nodeWidth / 2,
+      y: nodeWithPosition.y - nodeHeight / 2,
     };
+
+    return node;
   });
+
+  return nodes;
+}
+
+export function FieldToNodes(
+  field: FormField
+): Node<FieldProperties & { type: InputFieldType }> {
+  return {
+    data: { ...field.properties, type: field.type },
+    id: field._id,
+    position: {
+      x: 0,
+      y: 0,
+    },
+    type: 'custom',
+  };
 }
