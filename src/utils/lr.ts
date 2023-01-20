@@ -11,8 +11,6 @@ export default function getLayout<T>(
 ): Node<T>[] {
   const g = new graphlib.Graph<Node>();
 
-  console.log(nodes, edges);
-
   g.setGraph({
     rankdir: 'LR',
   });
@@ -29,6 +27,9 @@ export default function getLayout<T>(
     g.setEdge(edge.source, edge.target);
   });
 
+  g.graph().ranksep = 50;
+  g.graph().nodesep = 50;
+
   layout(g);
 
   nodes.forEach((node) => {
@@ -37,8 +38,8 @@ export default function getLayout<T>(
     node.sourcePosition = Position.Right;
 
     node.position = {
-      x: nodeWithPosition.x - nodeWidth / 2,
-      y: nodeWithPosition.y - nodeHeight / 2,
+      x: nodeWithPosition.x,
+      y: nodeWithPosition.y,
     };
 
     return node;

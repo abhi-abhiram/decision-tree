@@ -15,12 +15,12 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
 const documents = {
     "\n  mutation CreateForm($workspaceId: String!, $data: CreateForm!) {\n    createForm(workspaceId: $workspaceId, data: $data) {\n      _id\n    }\n  }\n": types.CreateFormDocument,
     "\n  mutation Mutation($data: CreateWorkspace!) {\n    createWorkspace(data: $data) {\n      _id\n    }\n  }\n": types.MutationDocument,
-    "\n  mutation DeleteField($data: String!) {\n    deleteField(fieldId: $data) {\n      success\n    }\n  }\n": types.DeleteFieldDocument,
     "\n  mutation Delete($data: String!) {\n    deleteWorkspace(id: $data) {\n      success\n    }\n  }\n": types.DeleteDocument,
     "\n    query Workspace {\n      Workspaces {\n        _id\n        name\n      }\n    }\n  ": types.WorkspaceDocument,
     "\n  mutation Rename($data: UpdateWorkspace!) {\n    updateWorkspace(data: $data) {\n      success\n    }\n  }\n": types.RenameDocument,
     "\n  mutation CreateField($data: CreateFormField!, $id: String!) {\n    createFormField(data: $data, formId: $id) {\n      _id\n      name\n      type\n      properties {\n        label\n        placeholder\n        required\n      }\n    }\n  }\n": types.CreateFieldDocument,
     "\n  mutation CreateLogic($data: CreateLogic!, $formId: String!) {\n    createLogic(data: $data, formId: $formId) {\n      _id\n      ref {\n        _id\n        name\n        __typename\n      }\n      conditions {\n        _id\n        to {\n          _id\n          name\n          type\n          __typename\n        }\n        type\n        __typename\n      }\n      __typename\n    }\n  }\n": types.CreateLogicDocument,
+    "\n  mutation DeleteField($id: String!) {\n    deleteField(fieldId: $id) {\n      success\n    }\n  }\n": types.DeleteFieldDocument,
     "\n  query FieldsLogics($id: String!) {\n    Form(id: $id) {\n      fields {\n        _id\n        name\n        type\n        properties {\n          label\n          placeholder\n          description\n          choices {\n            _id\n            name\n            value\n          }\n          attachment {\n            name\n            url\n            type\n          }\n          searchOptions {\n            _id\n            name\n            options {\n              _id\n              name\n              value\n            }\n          }\n          required\n        }\n      }\n      logic {\n        _id\n        ref {\n          _id\n        }\n        conditions {\n          _id\n          type\n          choice {\n            _id\n            name\n            value\n          }\n          to {\n            _id\n          }\n        }\n      }\n    }\n  }\n": types.FieldsLogicsDocument,
     "\n  query Forms($id: String!) {\n    Workspace(id: $id) {\n      _id\n      name\n      forms {\n        _id\n        name\n        createdAt\n        updatedAt\n      }\n    }\n  }\n": types.FormsDocument,
 };
@@ -50,10 +50,6 @@ export function graphql(source: "\n  mutation Mutation($data: CreateWorkspace!) 
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function graphql(source: "\n  mutation DeleteField($data: String!) {\n    deleteField(fieldId: $data) {\n      success\n    }\n  }\n"): (typeof documents)["\n  mutation DeleteField($data: String!) {\n    deleteField(fieldId: $data) {\n      success\n    }\n  }\n"];
-/**
- * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
- */
 export function graphql(source: "\n  mutation Delete($data: String!) {\n    deleteWorkspace(id: $data) {\n      success\n    }\n  }\n"): (typeof documents)["\n  mutation Delete($data: String!) {\n    deleteWorkspace(id: $data) {\n      success\n    }\n  }\n"];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
@@ -71,6 +67,10 @@ export function graphql(source: "\n  mutation CreateField($data: CreateFormField
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n  mutation CreateLogic($data: CreateLogic!, $formId: String!) {\n    createLogic(data: $data, formId: $formId) {\n      _id\n      ref {\n        _id\n        name\n        __typename\n      }\n      conditions {\n        _id\n        to {\n          _id\n          name\n          type\n          __typename\n        }\n        type\n        __typename\n      }\n      __typename\n    }\n  }\n"): (typeof documents)["\n  mutation CreateLogic($data: CreateLogic!, $formId: String!) {\n    createLogic(data: $data, formId: $formId) {\n      _id\n      ref {\n        _id\n        name\n        __typename\n      }\n      conditions {\n        _id\n        to {\n          _id\n          name\n          type\n          __typename\n        }\n        type\n        __typename\n      }\n      __typename\n    }\n  }\n"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation DeleteField($id: String!) {\n    deleteField(fieldId: $id) {\n      success\n    }\n  }\n"): (typeof documents)["\n  mutation DeleteField($id: String!) {\n    deleteField(fieldId: $id) {\n      success\n    }\n  }\n"];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

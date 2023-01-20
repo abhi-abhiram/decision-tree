@@ -1,86 +1,29 @@
-import type { FieldProperties, InputFieldType } from '@/gql/graphql';
-import getLayout from '@/utils/lr';
-import React, { createContext, useEffect, useReducer } from 'react';
-import type { Edge, Node } from 'reactflow';
-
-const NodeDimentions = {
-  height: 40,
-  width: 150,
-};
-
-const setLayout = (
-  nodes: Node<
-    FieldProperties & {
-      type: InputFieldType;
-    }
-  >[],
-  edges: Edge<unknown>[]
-) => getLayout(nodes, edges, NodeDimentions.height, NodeDimentions.width);
+import type { FormField } from '@/gql/graphql';
+import React, { createContext, useReducer } from 'react';
 
 interface State {
-  head: Node<FieldProperties & { type: InputFieldType }> | undefined;
-  deleteHead: boolean;
-  newLayout: boolean;
+  head: FormField | undefined;
 }
 
 const initialState: State = {
   head: undefined,
-  deleteHead: false,
-  newLayout: false,
 };
 
-interface BaseAction {
-  type: string;
-  payload: unknown;
-}
+type SetHead = {
+  type: 'Set_Head';
+  payload: {
+    head: FormField | undefined;
+  };
+};
 
-interface SetHeadAction extends BaseAction {
-  type: 'setHead';
-  payload: { head: State['head'] };
-}
-
-interface AddNodeAction extends BaseAction {
-  type: 'addNode';
-  payload: { node: Node<FieldProperties & { type: InputFieldType }> };
-}
-
-interface DeleteNodeAction extends BaseAction {
-  type: 'deleteNode';
-  payload: { nodeId: string };
-}
-
-interface SetDeleteHead {
-  type: 'setDeleteHead';
-  payload: { deleteHead: State['deleteHead'] };
-}
-
-interface SetNewLayout {
-  type: 'setLayout';
-  payload: { newLayout: State['newLayout'] };
-}
-
-type NodeActions = AddNodeAction | DeleteNodeAction | SetDeleteHead;
-
-type Action = SetHeadAction | NodeActions | SetNewLayout;
+type Action = SetHead;
 
 const reducer = (state: State, action: Action): State => {
   switch (action.type) {
-    case 'setHead':
+    case 'Set_Head':
       return {
         ...state,
         head: action.payload.head,
-      };
-
-    case 'setDeleteHead':
-      return {
-        ...state,
-        deleteHead: action.payload.deleteHead,
-      };
-
-    case 'setLayout':
-      return {
-        ...state,
-        newLayout: action.payload.newLayout,
       };
 
     default:
