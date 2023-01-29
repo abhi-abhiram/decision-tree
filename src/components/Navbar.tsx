@@ -83,9 +83,9 @@ const useStyles = createStyles((theme) => ({
 
 const Workspaces = graphql(
   `
-    query Workspace {
+    query Workspaces {
       Workspaces {
-        _id
+        id
         name
       }
     }
@@ -102,9 +102,9 @@ export default function NavBar() {
   const workspaceLinks = useMemo(
     () =>
       result.data?.Workspaces.map((workspace) => (
-        <div className={classes.workSpace} key={workspace._id}>
+        <div className={classes.workSpace} key={workspace.id}>
           <Link
-            href={`/workspace/${workspace._id}`}
+            href={`/workspace/${workspace.id}`}
             className={classes.workspaceLink}
           >
             {workspace.name}

@@ -29,29 +29,20 @@ import getLayout, { FieldToNodes } from '@/utils/lr';
 import { graphql } from '@/gql';
 import { useMutation, useQuery } from 'urql';
 import { ConditionType } from '@/gql/graphql';
-import type {
-  FieldsLogicsQuery,
-  FieldProperties,
-  FormField,
-} from '@/gql/graphql';
+import type { FormField, FieldsLogicsQuery } from '@/gql/graphql';
 import { InputFieldType } from '@/gql/graphql';
 import { useRouter } from 'next/router';
 import { FormContext } from '@/context/formContext';
 import ContextMenu from '@/components/ContextMenu';
 import NodeItem from '@/components/NodeItem';
 import Toolbar from '@/components/Toolbar';
+import Truncate from '@/components/Truncate';
 
-const setLayout = (
-  nodes: Node<
-    FieldProperties & {
-      type: InputFieldType;
-    }
-  >[],
-  edges: Edge<unknown>[]
-) => getLayout(nodes, edges, NodeDimentions.height, NodeDimentions.width);
+const setLayout = (nodes: Node<FormField>[], edges: Edge<unknown>[]) =>
+  getLayout(nodes, edges, NodeDimentions.height, NodeDimentions.width);
 
 const NodeDimentions = {
-  height: 40,
+  height: 50,
   width: 150,
 };
 
@@ -69,6 +60,8 @@ const useStyles = createStyles((theme) => ({
     }`,
     display: 'flex',
     flexDirection: 'column',
+    backgroundColor:
+      theme.colorScheme === 'dark' ? theme.colors.dark : theme.white,
   },
 
   navright: {
@@ -143,9 +136,7 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-const DefaultNode: ComponentType<
-  NodeProps<FieldProperties & { type: InputFieldType }>
-> = ({ ...props }) => {
+const DefaultNode: ComponentType<NodeProps<FormField>> = ({ ...props }) => {
   const { classes, cx } = useStyles();
   const { state } = useContext(FormContext);
 
@@ -164,10 +155,23 @@ const DefaultNode: ComponentType<
       />
       <div
         className={cx(classes.customeNode, {
-          [classes.head]: props.id === state.head?._id,
+          [classes.head]: props.id === state.head?.id,
         })}
       >
-        <Text>Node</Text>
+        <div
+          style={{
+            padding: '0 10px',
+          }}
+        >
+          <Truncate
+            text={props.data.question || '...'}
+            maxLength={34}
+            textProps={{
+              size: 'sm',
+              align: 'center',
+            }}
+          />
+        </div>
       </div>
       <Handle
         type='source'
@@ -186,50 +190,35 @@ const DefaultNode: ComponentType<
 const nodeTypes: NodeTypes = { custom: DefaultNode };
 
 const CreateField = graphql(`
-  mutation CreateField($data: CreateFormField!, $id: String!) {
+  mutation CreateField($data: FormFieldInput!, $id: String!) {
     createFormField(data: $data, formId: $id) {
-      _id
-      name
+      id
+      question
       type
-      properties {
-        label
-        placeholder
-        required
-      }
+      required
     }
   }
 `);
 
 const CreateLogic = graphql(`
-  mutation CreateLogic($data: CreateLogic!, $formId: String!) {
-    createLogic(data: $data, formId: $formId) {
-      _id
+  mutation CreateLogic($data: LogicInput!, $id: String!) {
+    createLogic(data: $data, formId: $id) {
+      id
       ref {
-        _id
-        name
-        __typename
+        id
       }
-      conditions {
-        _id
-        to {
-          _id
-          name
-          type
-          __typename
-        }
-        type
-        __typename
+      type
+      value
+      to {
+        id
       }
-      __typename
     }
   }
 `);
 
 const DeleteFieldGql = graphql(`
   mutation DeleteField($id: String!) {
-    deleteField(fieldId: $id) {
-      success
-    }
+    deleteFormField(id: $id)
   }
 `);
 
@@ -238,7 +227,7 @@ const Editor = ({
   initiallogics,
 }: {
   initialfields: FormField[];
-  initiallogics: FieldsLogicsQuery['Form']['logic'];
+  initiallogics: FieldsLogicsQuery['getForm']['logic'];
 }) => {
   const { classes, theme } = useStyles();
   const flow = useRef<HTMLDivElement>(null);
@@ -266,8 +255,21 @@ const Editor = ({
     return setLayout(nodesNoposition, edges);
   }, [edges, fields]);
 
+  const updateField = useCallback(
+    (field: FormField) => {
+      const newFields = fields.map((f) => {
+        if (f.id === field.id) {
+          return field;
+        }
+        return f;
+      });
+      setFields(newFields);
+    },
+    [fields]
+  );
+
   useEffect(() => {
-    const node = nodes.find((node) => node.id === state.head?._id);
+    const node = nodes.find((node) => node.id === state.head?.id);
     const timer = setTimeout(() => {
       if (node) {
         reactFlowInstance.fitBounds(
@@ -285,19 +287,19 @@ const Editor = ({
       clearTimeout(timer);
     }, 10);
 
-    if (!state.head?._id) {
+    if (!state.head?.id) {
       setOpenToolbar(false);
     }
-  }, [openToolbar, state.head?._id]);
+  }, [openToolbar, state.head?.id]);
 
   const createField = useCallback(
     (type: InputFieldType) => {
       return createFieldMutation({
         id: query.id as string,
         data: {
-          name: '',
+          question: '',
           type: type,
-          properties: {},
+          form: '',
         },
       });
     },
@@ -308,15 +310,11 @@ const Editor = ({
     (ref: string, to: string) => {
       return createLogicMutation({
         data: {
-          conditions: [
-            {
-              to,
-              type: ConditionType.Always,
-            },
-          ],
-          ref,
+          ref: ref,
+          to: to,
+          type: ConditionType.Always,
         },
-        formId: query.id as string,
+        id: query.id as string,
       });
     },
     [createLogicMutation, query.id]
@@ -327,8 +325,8 @@ const Editor = ({
       const newField = await createField(type);
       if (state.head && newField.data?.createFormField) {
         const newlogic = await createLogic(
-          state.head._id,
-          newField.data.createFormField._id
+          state.head.id,
+          newField.data.createFormField.id
         );
 
         if (newlogic.data) {
@@ -336,7 +334,6 @@ const Editor = ({
           fields.push(newField.data.createFormField);
           setLogics([...logics]);
           setFields([...fields]);
-          console.log('fdafjsfsd');
         }
       }
     },
@@ -415,7 +412,7 @@ const Editor = ({
         <ScrollArea h='100%' scrollbarSize={5}>
           {fields.map((field) => (
             <NodeItem
-              key={field._id}
+              key={field.id}
               node={field}
               onClickMenu={(x: number, y: number) =>
                 setOpenContextMenu({
@@ -465,10 +462,11 @@ const Editor = ({
                 type: 'Set_Head',
                 payload: {
                   head: {
-                    _id: node.id,
-                    name: node.data.label,
+                    id: node.id,
+                    question: node.data.question,
                     type: node.data.type,
-                    properties: node.data,
+                    required: node.data.required,
+                    logic: node.data.logic,
                   },
                 },
               });
@@ -495,7 +493,7 @@ const Editor = ({
           onDelete={() => {
             if (state.head) {
               deleteFieldMutation({
-                id: state.head._id,
+                id: state.head.id,
               }).then((res) => {
                 setOpenContextMenu({
                   open: false,
@@ -504,7 +502,7 @@ const Editor = ({
                 });
 
                 setFields(
-                  fields.filter((field) => field._id !== state.head?._id)
+                  fields.filter((field) => field.id !== state.head?.id)
                 );
                 dispatch({
                   type: 'Set_Head',
@@ -517,60 +515,43 @@ const Editor = ({
           }}
         />
       )}
-      {openToolbar && <Toolbar onClose={() => setOpenToolbar(false)} />}
+      {openToolbar && (
+        <Toolbar
+          onClose={() => setOpenToolbar(false)}
+          onUpdate={updateField}
+          fields={fields}
+          logics={logics}
+        />
+      )}
     </div>
   );
 };
 
 const Form = graphql(`
   query FieldsLogics($id: String!) {
-    Form(id: $id) {
+    getForm(id: $id) {
       fields {
-        _id
-        name
+        id
+        question
         type
-        properties {
-          label
-          placeholder
-          description
-          choices {
-            _id
-            name
-            value
-          }
-          attachment {
-            name
-            url
-            type
-          }
-          searchOptions {
-            _id
-            name
-            options {
-              _id
-              name
-              value
-            }
-          }
-          required
+        placeholder
+        required
+        options {
+          id
+          name
+          value
         }
+        attachment
       }
       logic {
-        _id
+        id
         ref {
-          _id
+          id
         }
-        conditions {
-          _id
-          type
-          choice {
-            _id
-            name
-            value
-          }
-          to {
-            _id
-          }
+        type
+        value
+        to {
+          id
         }
       }
     }
@@ -582,7 +563,7 @@ const Wrapper = () => {
   const [result] = useQuery({
     query: Form,
     variables: {
-      id: (query.id as string) || '',
+      id: query.id as string,
     },
   });
 
@@ -598,8 +579,8 @@ const Wrapper = () => {
     <>
       <ReactFlowProvider>
         <Editor
-          initialfields={result.data?.Form.fields || []}
-          initiallogics={result.data?.Form.logic || []}
+          initialfields={result.data?.getForm.fields || []}
+          initiallogics={result.data?.getForm.logic || []}
         />
       </ReactFlowProvider>
     </>
@@ -608,10 +589,10 @@ const Wrapper = () => {
 
 export default Wrapper;
 
-function getEdges(logic: FieldsLogicsQuery['Form']['logic']): Edge[] {
+function getEdges(logic: FieldsLogicsQuery['getForm']['logic']): Edge[] {
   return logic.map((val) => ({
-    id: `${val.ref._id}-${val.conditions[0]?._id}`,
-    source: val.ref._id,
-    target: val.conditions[0]!.to._id,
+    id: `${val.ref.id}-${val.id}`,
+    source: val.ref.id,
+    target: val.to.id,
   }));
 }

@@ -1,12 +1,14 @@
 import { Field, InputType, ObjectType, registerEnumType } from 'type-graphql';
-import * as typegoose from '@typegoose/typegoose';
-import {
-  getModelForClass,
-  Index,
-  modelOptions,
-  prop,
-} from '@typegoose/typegoose';
 import { GraphQLID } from 'graphql';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { Form } from './form.schema';
+import { Logic } from './logic.schema';
 
 export enum InputFieldType {
   TEXTINPUT = 'TEXTINPUT',
@@ -32,143 +34,95 @@ registerEnumType(AttachmentType, {
   description: 'Attachment type',
 });
 
-@ObjectType()
-@modelOptions({ schemaOptions: { _id: false } })
-export class Attachment {
-  @Field(() => String)
-  @prop()
-  public name!: string;
-
-  @Field(() => String)
-  @prop()
-  public url!: string;
-
-  @Field(() => AttachmentType)
-  @prop({ enum: AttachmentType })
-  public type!: AttachmentType;
-}
-
-@ObjectType()
-@modelOptions({ schemaOptions: { _id: false } })
-export class FieldProperties {
-  @Field(() => String, { nullable: true })
-  @prop()
-  public label?: string;
-
-  @Field(() => String, { nullable: true })
-  @prop()
-  public placeholder?: string;
-
-  @Field(() => String, { nullable: true })
-  @prop()
-  public description?: string;
-
-  @Field(() => [FieldChoice], { nullable: true })
-  @prop({ ref: () => FieldChoice })
-  public choices?: typegoose.Ref<FieldChoice>[];
-
-  @Field(() => FormSearchOptions, { nullable: true })
-  @prop({ ref: () => FormSearchOptions })
-  public searchOptions?: typegoose.Ref<FormSearchOptions>;
-
-  @Field(() => Boolean)
-  @prop({ default: true })
-  public required?: boolean;
-
-  @Field(() => Attachment, { nullable: true })
-  @prop()
-  public attachment?: Attachment;
-}
-
-@ObjectType()
-export class FormField {
-  @Field(() => GraphQLID)
-  public _id: string;
-
-  @Field(() => String)
-  @prop()
-  public name!: string;
-
-  @Field(() => InputFieldType)
-  @prop({ enum: InputFieldType })
-  public type!: InputFieldType;
-
-  @Field(() => FieldProperties)
-  @prop()
-  public properties: FieldProperties;
-}
-
-@ObjectType()
-export class FieldChoice {
-  @Field(() => GraphQLID)
-  public _id: string;
-
-  @Field(() => String)
-  @prop()
-  public name!: string;
-
-  @Field(() => String)
-  @prop()
-  public value!: string;
-}
-
+@Entity()
 @ObjectType()
 export class SearchOption {
   @Field(() => GraphQLID)
-  public _id: string;
+  @PrimaryGeneratedColumn('uuid')
+  public id: string;
 
   @Field(() => String)
-  @prop()
+  @Column()
   public name!: string;
 
-  @Field(() => String)
-  @prop()
-  public value!: string;
+  @Field(() => [String])
+  @Column('simple-array')
+  public value!: string[];
+
+  @Field(() => [FormField], { nullable: true })
+  @OneToMany(() => FormField, (field) => field)
+  public field!: FormField[];
 }
 
+@Entity()
 @ObjectType()
-@Index({ _id: 1, 'option.value': 1 }, { unique: true })
-export class FormSearchOptions {
+export class FormField {
   @Field(() => GraphQLID)
-  public _id: string;
+  @PrimaryGeneratedColumn('uuid')
+  public id: string;
 
   @Field(() => String)
-  @prop()
-  public name!: string;
+  @Column()
+  public question!: string;
 
-  @Field(() => [SearchOption])
-  @prop({ type: () => [SearchOption] })
-  public options!: SearchOption[];
+  @Field(() => InputFieldType)
+  @Column({ enum: InputFieldType })
+  public type!: InputFieldType;
+
+  @Field(() => String, { nullable: true })
+  @Column({ nullable: true })
+  public placeholder?: string;
+
+  @Field(() => Boolean)
+  @Column({
+    default: true,
+  })
+  public required!: boolean;
+
+  @Field(() => SearchOption, { nullable: true })
+  @ManyToOne(() => SearchOption, (option) => option)
+  public options?: SearchOption;
+
+  @Field(() => String, { nullable: true })
+  @Column({ nullable: true })
+  public attachment?: string;
+
+  @Field(() => Form, { nullable: true })
+  @ManyToOne(() => Form, (form) => form.fields, {
+    onDelete: 'CASCADE',
+  })
+  public form: Form;
+
+  @Field(() => [Logic], { nullable: true })
+  @OneToMany(() => Logic, (logic) => logic.ref)
+  public logic: Logic[];
 }
-
-export const FormFieldModel = getModelForClass<typeof FormField>(FormField);
-export const FieldChoiceModel =
-  getModelForClass<typeof FieldChoice>(FieldChoice);
-export const FormSearchOptionsModel =
-  getModelForClass<typeof FormSearchOptions>(FormSearchOptions);
 
 /* -------- input schema --------- */
 
 @InputType()
-export class CreateFormSearchOptions {
+export class FormFieldInput {
+  @Field(() => String)
+  public question!: string;
+
+  @Field(() => InputFieldType)
+  public type!: InputFieldType;
+
+  @Field(() => GraphQLID)
+  public form: string;
+}
+
+@InputType()
+export class SearchOptionInput {
   @Field(() => String)
   public name!: string;
 
-  @Field(() => [CreateOptions])
-  public options: CreateOptions[];
+  @Field(() => String)
+  public value!: string;
 }
 
 @InputType()
-export class CreateOptions {
-  @Field(() => String)
-  public name: string;
-
-  @Field(() => String)
-  public value: string;
-}
-
-@InputType()
-export class CreateAttachment {
+export class AttachmentInput {
   @Field(() => String)
   public name!: string;
 
@@ -177,115 +131,24 @@ export class CreateAttachment {
 
   @Field(() => AttachmentType)
   public type!: AttachmentType;
-}
-
-@InputType()
-export class CreateFieldProperties {
-  @Field(() => String, { nullable: true })
-  public label?: string;
-
-  @Field(() => String, { nullable: true })
-  public placeholder?: string;
-
-  @Field(() => String, { nullable: true })
-  public description?: string;
-
-  @Field(() => [GraphQLID], { nullable: true })
-  public choices?: string[];
-
-  @Field(() => GraphQLID, {
-    nullable: true,
-  })
-  public searchOptions?: string;
-
-  @Field(() => Boolean, { nullable: true })
-  public required?: boolean;
-
-  @Field(() => CreateAttachment, { nullable: true })
-  public attachment?: CreateAttachment;
-}
-
-@InputType()
-export class CreateFormField {
-  @Field(() => String)
-  public name!: string;
-
-  @Field(() => InputFieldType)
-  public type!: InputFieldType;
-
-  @Field(() => CreateFieldProperties)
-  public properties?: CreateFieldProperties;
-}
-
-@InputType()
-export class CreateFieldChoice {
-  @Field(() => String)
-  public name!: string;
-
-  @Field(() => String)
-  public value!: string;
 }
 
 /* ----------- update schema ------------ */
 
 @InputType()
-export class UpdateAttachment {
+export class FormFieldUpdateInput {
   @Field(() => String, { nullable: true })
-  public name: string;
+  public question?: string;
 
-  @Field(() => String, { nullable: true })
-  public url: string;
-
-  @Field(() => AttachmentType, { nullable: true })
-  public type: AttachmentType;
-}
-
-@InputType()
-export class UpdateFieldProps {
-  @Field(() => String, { nullable: true })
-  public label: string;
+  @Field(() => InputFieldType, { nullable: true })
+  public type?: InputFieldType;
 
   @Field(() => String, { nullable: true })
-  public placeholder: string;
-
-  @Field(() => String, { nullable: true })
-  public description: string;
-
-  @Field(() => [GraphQLID], { nullable: true })
-  public choices: string[];
-
-  @Field(() => GraphQLID, {
-    nullable: true,
-  })
-  public searchOptions?: string;
+  public placeholder?: string;
 
   @Field(() => Boolean, { nullable: true })
   public required?: boolean;
 
-  @Field(() => UpdateAttachment, { nullable: true })
-  public attachment?: UpdateAttachment;
-}
-
-@InputType()
-export class UpdateFormField {
-  @Field(() => GraphQLID)
-  public _id: string;
-
-  @Field(() => String, { nullable: true })
-  public name!: string;
-
-  @Field(() => InputFieldType, { nullable: true })
-  public type!: InputFieldType;
-
-  @Field(() => UpdateFieldProps, { nullable: true })
-  public properties: UpdateFieldProps;
-}
-
-@ObjectType()
-export class UpdateResponse {
-  @Field(() => Boolean)
-  public status: boolean;
-
-  @Field(() => String)
-  public message: string;
+  @Field(() => GraphQLID, { nullable: true })
+  public attachment?: string;
 }

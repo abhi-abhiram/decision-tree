@@ -1,36 +1,75 @@
-import { Arg, Mutation, Query, Resolver } from 'type-graphql';
-import {
-  CreateLogic,
-  FormModel,
-  Logic,
-  LogicModel,
-} from '../schema/form.schema';
+import { Arg, Mutation, Resolver } from 'type-graphql';
+import { Logic, LogicInput, LogicUpdateInput } from '../schema/logic.schema';
+import { AppDataSource } from '@/utils/connectDB';
+import { FormField } from '../schema/field.schema';
 
 @Resolver(Logic)
 export default class LogicResolver {
-  @Query(() => Logic)
-  async Logic(@Arg('id') id: string) {
-    const Logic = await LogicModel.findById(id)
-      .lean()
-      .populate(['ref', 'conditions.to']);
+  private logicRepository = AppDataSource.getRepository(Logic);
+  private formRepository = AppDataSource.getRepository(FormField);
 
-    return Logic;
+  @Mutation(() => Logic)
+  async createLogic(@Arg('data') input: LogicInput, @Arg('formId') id: string) {
+    const logic = this.logicRepository.create({
+      ...input,
+      ref: { id: input.ref },
+      to: { id: input.to },
+      form: { id },
+    });
+
+    await this.logicRepository.save(logic);
+
+    return logic;
   }
 
   @Mutation(() => Logic)
-  async createLogic(
-    @Arg('data') input: CreateLogic,
-    @Arg('formId') id: string
+  async updateLogic(
+    @Arg('data') input: LogicUpdateInput,
+    @Arg('id') id: string
   ) {
-    const Logic = await (
-      await LogicModel.create(input)
-    ).populate(['ref', 'conditions.to']);
-    await FormModel.findByIdAndUpdate(id, {
-      $addToSet: {
-        logic: [Logic._id],
+    const logic = await this.logicRepository.findOne({
+      where: {
+        id,
       },
     });
 
-    return Logic.toObject();
+    if (!logic) {
+      return {
+        error: {
+          message: 'Logic not found',
+        },
+      };
+    }
+
+    if (input.ref) logic.ref.id = input.ref;
+    if (input.to) logic.to.id = input.to;
+
+    logic.type = input.type;
+    logic.value = input.value;
+
+    await this.logicRepository.save(logic);
+
+    return logic;
+  }
+
+  @Mutation(() => Boolean)
+  async deleteLogic(@Arg('id') id: string) {
+    const logic = await this.logicRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!logic) {
+      return {
+        error: {
+          message: 'Logic not found',
+        },
+      };
+    }
+
+    await this.logicRepository.remove(logic);
+
+    return true;
   }
 }

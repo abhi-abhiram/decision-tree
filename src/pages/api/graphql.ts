@@ -2,11 +2,11 @@ import 'reflect-metadata';
 import { ApolloServer } from 'apollo-server-micro';
 import type { NextApiHandler, PageConfig } from 'next';
 import { buildSchema } from 'type-graphql';
-import { connectDB } from '@/utils/connectDB';
 import Cors from 'micro-cors';
 import { resolvers } from '@/graphql/resolvers';
 import type { GrapqhlContext } from '@/graphql/context';
-import { loaders } from '@/graphql/context';
+// import { loaders } from '@/graphql/context';
+import { getDatabaseConnection } from '@/utils/connectDB';
 
 const schema = await buildSchema({
   resolvers,
@@ -18,7 +18,7 @@ const cors = Cors();
 const apolloServer = new ApolloServer({
   schema,
   context: ({ req, res }): GrapqhlContext => {
-    return { req, res, loaders };
+    return { req, res };
   },
 });
 
@@ -39,7 +39,7 @@ const handler: NextApiHandler = cors(async (req, res) => {
     return false;
   }
 
-  await connectDB();
+  await getDatabaseConnection();
   await startServer;
 
   await apolloServer.createHandler({

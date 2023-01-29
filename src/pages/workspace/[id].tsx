@@ -27,7 +27,7 @@ import { useQuery } from 'urql';
 import dateFormat from 'dateformat';
 import RenameWorkspace from '@/components/RenameWorkspace';
 import DeleteWorkspace from '@/components/DeleteWorkspace';
-import type { FormsQuery } from '@/gql/graphql';
+import type { WorkspaceQuery } from '@/gql/graphql';
 
 const useStyles = createStyles((theme) => {
   return {
@@ -171,12 +171,12 @@ const ListItem = ({ name, createdAt, updatedAt, id }: ListProps) => {
 };
 
 const Forms = graphql(`
-  query Forms($id: String!) {
+  query Workspace($id: String!) {
     Workspace(id: $id) {
-      _id
+      id
       name
       forms {
-        _id
+        id
         name
         createdAt
         updatedAt
@@ -186,22 +186,22 @@ const Forms = graphql(`
 `);
 
 const sortData = (
-  data: FormsQuery,
+  data: WorkspaceQuery['Workspace'],
   sortBy: 'CreatedAt' | 'UpdatedAt' | 'Alpha'
 ) => {
   const sortedData = data;
   if (sortBy === 'CreatedAt') {
-    sortedData.Workspace.forms = data.Workspace.forms.sort(
+    sortedData.forms = data.forms.sort(
       (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
   } else if (sortBy === 'UpdatedAt') {
-    sortedData.Workspace.forms = data.Workspace.forms.sort(
+    sortedData.forms = data.forms.sort(
       (a, b) =>
         new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
     );
   } else {
-    sortedData.Workspace.forms = data.Workspace.forms.sort((a, b) => {
+    sortedData.forms = data.forms.sort((a, b) => {
       const nameA = a.name;
       const nameB = b.name;
       if (nameA < nameB) return -1;
@@ -229,8 +229,12 @@ const WorkSpace = () => {
     'CreatedAt'
   );
   const sortedData = useMemo(() => {
-    if (result.data) return sortData(result.data, sortedBy);
+    if (result.data) return sortData(result.data.Workspace, sortedBy);
   }, [result.data, sortedBy]);
+
+  if (result.fetching) return <div>Loading...</div>;
+
+  console.log(result.error);
 
   return (
     <div className={classes.workspace}>
@@ -376,14 +380,14 @@ const WorkSpace = () => {
         offsetScrollbars
       >
         <div>
-          {sortedData?.Workspace.forms.map((val) => {
+          {sortedData?.forms.map((val) => {
             return (
               <ListItem
                 createdAt={dateFormat(val.createdAt, 'paddedShortDate')}
                 name={val.name}
                 updatedAt={dateFormat(val.updatedAt, 'paddedShortDate')}
-                id={val._id}
-                key={val._id}
+                id={val.id}
+                key={val.id}
               />
             );
           })}
@@ -426,7 +430,7 @@ const WorkSpace = () => {
         oldName={result.data?.Workspace.name || ''}
       />
       <DeleteWorkspace
-        id={result.data?.Workspace._id || ''}
+        id={result.data?.Workspace.id || ''}
         modalProps={{
           opened: deleteWorkspace,
           onClose: () => setDeleteWorkspace(false),

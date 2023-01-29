@@ -1,9 +1,18 @@
 import { FormContext } from '@/context/formContext';
 import type { FormField } from '@/gql/graphql';
+import { InputFieldType } from '@/gql/graphql';
 import { Group, Badge, Center, ActionIcon, createStyles } from '@mantine/core';
-import { IconForms, IconDotsVertical } from '@tabler/icons';
+import {
+  IconForms,
+  IconDotsVertical,
+  IconAlignRight,
+  IconCalendar,
+  IconCaretDown,
+  IconListSearch,
+} from '@tabler/icons';
 import { useContext, useRef } from 'react';
 import Truncate from './Truncate';
+import { TypeBadge } from './TypeBadge';
 
 const useStyles = createStyles((theme) => ({
   nodeItem: {
@@ -23,6 +32,23 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
+export const getIcon = (type: InputFieldType) => {
+  switch (type) {
+    case InputFieldType.Textinput:
+      return <IconForms size={20} />;
+    case InputFieldType.Textarea:
+      return <IconAlignRight size={20} />;
+    case InputFieldType.Date:
+      return <IconCalendar size={20} />;
+    case InputFieldType.Dropdown:
+      return <IconCaretDown size={20} />;
+    case InputFieldType.Search:
+      return <IconListSearch size={20} />;
+    default:
+      return <IconForms size={20} />;
+  }
+};
+
 const NodeItem = ({
   node,
   onClickMenu,
@@ -39,22 +65,18 @@ const NodeItem = ({
   return (
     <div
       className={cx(classes.nodeItem, {
-        [classes.nodeItemActive]: node._id === state.head?._id,
+        [classes.nodeItemActive]: node.id === state.head?.id,
       })}
       style={{ position: 'relative' }}
       onClick={onClick}
     >
       <Group>
-        <Badge radius={'sm'} size='lg' pl={'xs'} pr={'xs'}>
-          <Center>
-            <IconForms size={20} />
-          </Center>
-        </Badge>
+        <TypeBadge type={node.type} />
 
         <div style={{ flex: 1 }}>
           <Truncate
             maxLength={40}
-            text={node.name || '...'}
+            text={node.question || '...'}
             textProps={{ size: 'sm' }}
           />
         </div>

@@ -1,51 +1,34 @@
 import { Field, InputType, ObjectType } from 'type-graphql';
-import * as typegoose from '@typegoose/typegoose';
-import { prop } from '@typegoose/typegoose';
 import { GraphQLID } from 'graphql';
 import { Form } from './form.schema';
-import { UpdateOpration } from './common';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 
+@Entity()
 @ObjectType()
 export class Workspace {
   @Field(() => GraphQLID)
-  public _id: string;
+  @PrimaryGeneratedColumn('uuid')
+  public id: string;
 
   @Field(() => String)
-  @prop()
+  @Column()
   public name!: string;
 
   @Field(() => [Form])
-  @prop({ ref: () => Form })
-  public forms?: typegoose.Ref<Form>[];
-
-  @Field(() => Date)
-  @prop({ default: Date.now })
-  public createdAt?: Date;
+  @OneToMany(() => Form, (form) => form)
+  public forms!: Form[];
 }
 
+// --------------- input schema ----------------
+
 @InputType()
-export class CreateWorkspace {
+export class WorkspaceInput {
   @Field(() => String)
-  name: string;
+  public name!: string;
 }
 
 @InputType()
-export class UpdateForms extends UpdateOpration {
-  @Field(() => [GraphQLID])
-  formIds: string[];
+export class UpdateWorkspaceInput {
+  @Field(() => String)
+  public name!: string;
 }
-
-@InputType()
-export class UpdateWorkspace {
-  @Field(() => GraphQLID)
-  public _id: string;
-
-  @Field(() => String, { nullable: true })
-  public name?: string;
-
-  @Field(() => UpdateForms, { nullable: true })
-  public forms?: UpdateForms;
-}
-
-export const WorkspaceModel =
-  typegoose.getModelForClass<typeof Workspace>(Workspace);

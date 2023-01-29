@@ -1,146 +1,71 @@
-import { Field, InputType, ObjectType, registerEnumType } from 'type-graphql';
-import * as typegoose from '@typegoose/typegoose';
-import { getModelForClass, prop } from '@typegoose/typegoose';
+import { Field, InputType, ObjectType } from 'type-graphql';
 import { GraphQLID } from 'graphql';
-import { FormField, FieldChoice } from './field.schema';
-import { UpdateOpration } from './common';
+import { Logic } from './logic.schema';
+import { FormField } from './field.schema';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  ManyToOne,
+  OneToOne,
+} from 'typeorm';
+import * as typeorm from 'typeorm';
+import { Workspace } from './workspace.schema';
 
-enum ConditionType {
-  EQUAL = 'EQUAL',
-  ALWAYS = 'ALWAYS',
-}
-
-registerEnumType(ConditionType, {
-  name: 'ConditionType',
-  description: 'Condition type',
-});
-
+@Entity()
 @ObjectType()
 export class Form {
   @Field(() => GraphQLID)
-  public _id: string;
+  @PrimaryGeneratedColumn('uuid')
+  public id: string;
 
   @Field(() => String)
-  @prop()
+  @Column()
   public name!: string;
 
+  @Field(() => FormField)
+  @OneToOne(() => FormField)
+  public rootField!: typeorm.Relation<FormField>;
+
   @Field(() => [FormField])
-  @prop({ ref: () => FormField })
-  public fields?: typegoose.Ref<FormField>[];
+  @OneToMany(() => FormField, (field) => field.form)
+  public fields!: FormField[];
 
   @Field(() => [Logic])
-  @prop({ ref: () => Logic })
-  public logic?: typegoose.Ref<Logic>[];
+  @OneToMany(() => Logic, (logic) => logic.form)
+  public logic!: Logic[];
+
+  @Field(() => Workspace)
+  @ManyToOne(() => Workspace, (workspace) => workspace.forms, {
+    onDelete: 'CASCADE',
+  })
+  public workspace!: Workspace;
 
   @Field(() => Date)
-  @prop({ default: Date.now })
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   public createdAt: Date;
 
   @Field(() => Date)
-  @prop({ default: Date.now })
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
   public updatedAt: Date;
 }
 
-@ObjectType()
-export class Logic {
-  @Field(() => GraphQLID)
-  public _id: string;
-
-  @Field(() => FormField)
-  @prop({ ref: () => FormField })
-  public ref: typegoose.Ref<FormField>;
-
-  @Field(() => [Condition])
-  @prop({ type: () => [Condition] })
-  public conditions: Condition[];
-}
-
-@ObjectType()
-export class Condition {
-  @Field(() => GraphQLID)
-  public _id: string;
-
-  @Field(() => ConditionType)
-  @prop({ enum: ConditionType })
-  public type!: ConditionType;
-
-  @Field(() => FieldChoice, { nullable: true })
-  @prop({ ref: () => FieldChoice })
-  public choice?: typegoose.Ref<FieldChoice>;
-
-  @Field(() => FormField)
-  @prop({ ref: () => FormField })
-  public to: typegoose.Ref<FormField>;
-}
-
 @InputType()
-export class CreateForm {
+export class FormInput {
   @Field(() => String)
-  name!: string;
-
-  @Field(() => [GraphQLID], { nullable: true })
-  fields?: string[];
-
-  @Field(() => [GraphQLID], { nullable: true })
-  logic?: string[];
+  public name!: string;
 }
 
 @InputType()
-export class CreateCondition {
-  @Field(() => ConditionType)
-  type: ConditionType;
-
-  @Field(() => GraphQLID, { nullable: true })
-  choice: string;
-
-  @Field(() => GraphQLID)
-  to: string;
-}
-
-@InputType()
-export class CreateLogic {
-  @Field(() => GraphQLID)
-  ref: string;
-
-  @Field(() => [CreateCondition])
-  conditions: Condition[];
-}
-
-@InputType()
-export class UpdateFields extends UpdateOpration {
-  @Field(() => [GraphQLID])
-  fields: string[];
-}
-
-@InputType()
-export class UpdateLogics extends UpdateOpration {
-  @Field(() => [GraphQLID])
-  logic: string[];
-}
-
-@InputType()
-export class UpdateForm {
-  @Field(() => GraphQLID)
-  _id: string;
-
+export class FormUpdateInput {
   @Field(() => String, { nullable: true })
-  name: string;
-
-  @Field(() => UpdateFields, { nullable: true })
-  fields?: UpdateFields;
-
-  @Field(() => UpdateLogics, { nullable: true })
-  logic?: UpdateLogics;
+  public name?: string;
 }
-
-@InputType()
-export class AddFormToWorkspace {
-  @Field(() => GraphQLID)
-  workspaceId: string;
-
-  @Field(() => [GraphQLID])
-  formIds: string[];
-}
-
-export const FormModel = getModelForClass<typeof Form>(Form);
-export const LogicModel = getModelForClass<typeof Logic>(Logic);

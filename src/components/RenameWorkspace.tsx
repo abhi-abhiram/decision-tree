@@ -23,9 +23,9 @@ const useStyles = createStyles((theme) => ({
 }));
 
 const UpdateWorkspace = graphql(`
-  mutation Rename($data: UpdateWorkspace!) {
-    updateWorkspace(data: $data) {
-      success
+  mutation UpdateWorkspace($id: String!, $name: String!) {
+    updateWorkspace(id: $id, name: $name) {
+      id
     }
   }
 `);
@@ -60,10 +60,8 @@ const RenameWorkspace = ({
         onSubmit={(e) => {
           e.preventDefault();
           renameWorkspace({
-            data: {
-              _id: query.id as string,
-              name,
-            },
+            id: query.id as string,
+            name,
           }).then((result) => {
             if (result.error) {
               return console.log('Opps! Error');

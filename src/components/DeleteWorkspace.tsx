@@ -30,10 +30,8 @@ const useStyles = createStyles((theme) => ({
 }));
 
 const UpdateWorkspace = graphql(`
-  mutation Delete($data: String!) {
-    deleteWorkspace(id: $data) {
-      success
-    }
+  mutation Delete($id: String!) {
+    deleteWorkspace(id: $id)
   }
 `);
 
@@ -74,7 +72,7 @@ const DeleteWorkspace = ({
         onSubmit={(e) => {
           e.preventDefault();
           deleteWorkspace({
-            data: id,
+            id: id,
           }).then((result) => {
             if (result.error) {
               return console.log('Opps! Error');

@@ -23,9 +23,9 @@ const useStyles = createStyles((theme) => ({
 }));
 
 const Form = graphql(`
-  mutation CreateForm($workspaceId: String!, $data: CreateForm!) {
-    createForm(workspaceId: $workspaceId, data: $data) {
-      _id
+  mutation CreateForm($workspaceId: String!, $name: String!) {
+    createForm(workspaceId: $workspaceId, name: $name) {
+      id
     }
   }
 `);
@@ -54,16 +54,14 @@ const CreateForm = ({ modalProps }: { modalProps: ModalProps }) => {
           e.preventDefault();
 
           createForm({
-            data: {
-              name,
-            },
             workspaceId: query.id as string,
+            name,
           }).then((result) => {
             if (result.error) {
               return console.log('Opps! Error');
             }
             modalProps.onClose();
-            push(`/form/${result.data?.createForm._id}`);
+            push(`/form/${result.data?.createForm.id}`);
           });
         }}
       >

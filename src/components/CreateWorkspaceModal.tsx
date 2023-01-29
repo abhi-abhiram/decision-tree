@@ -23,9 +23,9 @@ const useStyles = createStyles((theme) => ({
 }));
 
 const Workspace = graphql(`
-  mutation Mutation($data: CreateWorkspace!) {
-    createWorkspace(data: $data) {
-      _id
+  mutation CreateWorkspace($name: String!) {
+    createWorkspace(name: $name) {
+      id
     }
   }
 `);
@@ -53,15 +53,13 @@ const CreateWorkspace = ({ modalProps }: { modalProps: ModalProps }) => {
         onSubmit={(e) => {
           e.preventDefault();
           createWorkspace({
-            data: {
-              name,
-            },
+            name,
           }).then((result) => {
             if (result.error) {
               return console.log('Opps! Error');
             }
             modalProps.onClose();
-            push(`/workspace/${result.data?.createWorkspace._id}`);
+            push(`/workspace/${result.data?.createWorkspace.id}`);
           });
         }}
       >

@@ -1,66 +1,95 @@
-import { Arg, Mutation, Query, Resolver } from 'type-graphql';
-import { UpdateStatus } from '../schema/common';
 import {
-  CreateWorkspace,
-  UpdateWorkspace,
-  Workspace,
-  WorkspaceModel,
-} from '../schema/workspace.schema';
+  Arg,
+  FieldResolver,
+  Mutation,
+  Query,
+  Resolver,
+  Root,
+} from 'type-graphql';
+import { Workspace } from '../schema/workspace.schema';
+import { AppDataSource } from '@/utils/connectDB';
+import { Form } from '../schema/form.schema';
 
 @Resolver(Workspace)
 export default class WorkspaceResolver {
-  @Query(() => Workspace)
-  async Workspace(@Arg('id') id: string) {
-    const Workspace = await WorkspaceModel.findById(id)
-      .lean()
-      .populate('forms');
-    return Workspace;
-  }
+  private workspaceRepository = AppDataSource.getRepository(Workspace);
+  private formRepository = AppDataSource.getRepository(Form);
 
   @Query(() => [Workspace])
   async Workspaces() {
-    const Workspaces = await WorkspaceModel.find({}).lean();
+    const workspaces = await this.workspaceRepository.find();
 
-    return Workspaces;
+    return workspaces;
+  }
+
+  @Query(() => Workspace)
+  async Workspace(@Arg('id') id: string) {
+    const workspace = await this.workspaceRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    return workspace;
+  }
+
+  @FieldResolver()
+  async forms(@Root() workspace: Workspace) {
+    const forms = await this.formRepository.find({
+      where: {
+        workspace: {
+          id: workspace.id,
+        },
+      },
+    });
+
+    return forms;
   }
 
   @Mutation(() => Workspace)
-  async createWorkspace(@Arg('data') input: CreateWorkspace) {
-    const Workspace = await WorkspaceModel.create(input);
+  async createWorkspace(@Arg('name') name: string) {
+    const workspace = this.workspaceRepository.create({
+      name,
+    });
 
-    return Workspace;
+    await this.workspaceRepository.save(workspace);
+
+    return workspace;
   }
 
-  @Mutation(() => UpdateStatus)
-  async updateWorkspace(
-    @Arg('data') input: UpdateWorkspace
-  ): Promise<UpdateStatus> {
-    const { forms } = input;
-    delete input.forms;
+  @Mutation(() => Workspace)
+  async updateWorkspace(@Arg('id') id: string, @Arg('name') name: string) {
+    const workspace = await this.workspaceRepository.findOne({
+      where: {
+        id,
+      },
+    });
 
-    const form = await WorkspaceModel.updateOne(
-      { _id: input._id },
-      {
-        ...input,
-        [`$${forms?.op}`]: {
-          forms: forms?.formIds,
-        },
-      }
-    );
+    if (!workspace) {
+      throw new Error('Workspace not found');
+    }
 
-    return {
-      message: 'success',
-      success: true,
-    };
+    workspace.name = name;
+
+    await this.workspaceRepository.save(workspace);
+
+    return workspace;
   }
 
-  @Mutation(() => UpdateStatus)
-  async deleteWorkspace(@Arg('id') id: string): Promise<UpdateStatus> {
-    const result = await WorkspaceModel.deleteOne({ _id: id });
+  @Mutation(() => Boolean)
+  async deleteWorkspace(@Arg('id') id: string) {
+    const workspace = await this.workspaceRepository.findOne({
+      where: {
+        id,
+      },
+    });
 
-    return {
-      message: 'Success',
-      success: true,
-    };
+    if (!workspace) {
+      throw new Error('Workspace not found');
+    }
+
+    await this.workspaceRepository.remove(workspace);
+
+    return true;
   }
 }

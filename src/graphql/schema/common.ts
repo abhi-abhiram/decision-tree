@@ -24,3 +24,12 @@ export class UpdateOpration {
   @Field(() => UpdateOperationType)
   op: UpdateOperationType;
 }
+
+@ObjectType()
+export class Error {
+  @Field()
+  message: string;
+
+  @Field()
+  code: number;
+}

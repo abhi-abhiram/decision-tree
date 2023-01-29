@@ -1,35 +1,28 @@
-import mongoose from "mongoose";
-import { env } from "@/env/server.mjs";
+import { DataSource } from 'typeorm';
+import { Logic } from '@/graphql/schema/logic.schema';
+import { FormField, SearchOption } from '@/graphql/schema/field.schema';
+import { Form } from '@/graphql/schema/form.schema';
+import { Workspace } from '@/graphql/schema/workspace.schema';
 
-mongoose.set("strictQuery", true);
+export const AppDataSource = new DataSource({
+  type: 'postgres',
+  host: 'localhost',
+  port: 3306,
+  username: 'test',
+  password: 'test',
+  database: 'test',
+  entities: [FormField, SearchOption, Form, Workspace, Logic],
+  synchronize: true,
+});
 
-declare global {
-  // eslint-disable-next-line no-var
-  var mongooseCli: {
-    conn: typeof mongoose | null;
-    promise: Promise<typeof mongoose> | null;
-  };
-}
-
-let cached = global.mongooseCli;
-
-if (!cached) {
-  cached = global.mongooseCli = { conn: null, promise: null };
-}
-
-const { MONGODB_URI } = env;
-
-export async function connectDB() {
-  if (cached.conn) {
-    return cached.conn;
+export const getDatabaseConnection = async () => {
+  if (!AppDataSource.isInitialized) {
+    AppDataSource.initialize()
+      .then(() => {
+        console.log('Data Source has been initialized!');
+      })
+      .catch((err) => {
+        console.error('Error during Data Source initialization', err);
+      });
   }
-
-  if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, {}).then((mongoose) => {
-      return mongoose;
-    });
-  }
-  cached.conn = await cached.promise;
-
-  return cached.conn;
-}
+};

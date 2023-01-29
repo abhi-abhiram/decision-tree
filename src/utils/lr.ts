@@ -1,4 +1,4 @@
-import type { FieldProperties, FormField, InputFieldType } from '@/gql/graphql';
+import type { FormField } from '@/gql/graphql';
 import { graphlib, layout } from 'dagre';
 import type { Edge, Node } from 'reactflow';
 import { Position } from 'reactflow';
@@ -48,12 +48,10 @@ export default function getLayout<T>(
   return nodes;
 }
 
-export function FieldToNodes(
-  field: FormField
-): Node<FieldProperties & { type: InputFieldType }> {
+export function FieldToNodes(field: FormField): Node<FormField> {
   return {
-    data: { ...field.properties, type: field.type },
-    id: field._id,
+    data: { ...field, type: field.type },
+    id: field.id,
     position: {
       x: 0,
       y: 0,
