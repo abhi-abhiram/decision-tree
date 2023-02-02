@@ -12,12 +12,18 @@ const Home = () => {
       <div style={{ textAlign: 'center' }}>
         <div>
           <Title order={2} style={{ fontWeight: 600 }}>
-            Welcome Back
+            Please contact me through this email:{' '}
+            <a
+              href='mailto: 
+            '
+            >
+              abhiramfiverr@gmail.com
+            </a>
           </Title>
 
-          <Text size='lg' style={{ fontWeight: 400 }}>
+          {/* <Text size='lg' style={{ fontWeight: 400 }}>
             Create a new workspace or select an existing one
-          </Text>
+          </Text> */}
         </div>
         <Button
           size='xs'
